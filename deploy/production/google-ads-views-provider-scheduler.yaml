@@ -1,0 +1,24 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: google-ads-views-provider-scheduler
+  labels:
+    app: google-ads-views-provider
+spec:
+  schedule: "*/1 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: google-ads-views-provider-worker
+              image: gcr.io/tubebiz/google-ads-views-provider
+              command: ["php", "artisan", "schedule:run"]
+              envFrom:
+                - configMapRef:
+                    name: google-ads-views-provider
+                - secretRef:
+                    name: google-ads-views-provider
+          nodeSelector:
+            cloud.google.com/gke-nodepool: google-ads-views-provider-server
+          restartPolicy: "OnFailure"

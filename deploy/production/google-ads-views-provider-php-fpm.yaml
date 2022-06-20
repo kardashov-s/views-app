@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: google-ads-views-provider-php-fpm
+data:
+  php-fpm.conf: |
+    [global]
+    pid = /run/php-fpm.pid
+    error_log = /dev/stderr
+    daemonize = no
+    [www]
+    user = www-data
+    group = www-data
+    listen = SOCKET
+    listen.backlog = -1
+    listen.owner = www-data
+    listen.group = www-data
+    listen.mode = 0666
+    listen.allowed_clients = 127.0.0.1
+    pm = dynamic
+    pm = dynamic
+    pm.max_children = 5000
+    pm.start_servers = 8
+    pm.min_spare_servers = 8
+    pm.max_spare_servers = 16
+    pm.max_requests = 5000
+    pm.status_path = /php-fpm-status
+    ping.path = /ping
+    ping.response = pong
+    slowlog = /dev/null
+    request_slowlog_timeout = 10
+    request_terminate_timeout = 10m
+    rlimit_files = 819200
+    rlimit_core = unlimited
+    catch_workers_output = yes
+    security.limit_extensions = .php
+    clear_env = no
+    env[HOSTNAME] = $HOSTNAME
+    env[PATH] = /usr/local/bin:/usr/bin:/bin:/app/vendor/bin
+    env[TMP] = /tmp
+
+    env[TMPDIR] = /tmp
+    env[TEMP] = /tmp
+    php_value[include_path]  = ".:/app:/app/src:/app/vendor:/usr/local/lib/php"
+    php_flag[display_errors] = DISPLAY_ERRORS
+    php_admin_flag[log_errors] = on
+    php_admin_value[error_log] = /dev/stdout
+    php_admin_value[memory_limit] = 256M

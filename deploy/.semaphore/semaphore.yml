@@ -1,0 +1,69 @@
+version: v1.0
+name: Pipeline
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+global_job_config:
+  secrets:
+    - name: tubebiz-gcloud-service-account
+    - name: clickadilla-github-api-token
+  prologue:
+    commands:
+      - export DEVELOPMENT_IMAGE="gcr.io/tubebiz/$SEMAPHORE_PROJECT_NAME:$SEMAPHORE_GIT_BRANCH-$SEMAPHORE_GIT_SHA-development"
+
+      - gcloud auth activate-service-account --key-file=$HOME/tubebiz-gcloud-service-account.json
+      - gcloud auth configure-docker -q
+
+      - checkout
+
+blocks:
+  - name: Build development image
+    dependencies: []
+    task:
+      jobs:
+        - name: docker build
+          commands:
+            - docker build --build-arg GITHUB_API_TOKEN=$GITHUB_API_TOKEN --target=dev --tag $DEVELOPMENT_IMAGE .
+            - docker push $DEVELOPMENT_IMAGE
+
+  - name: Run code analysis
+    dependencies: ["Build development image"]
+    task:
+      jobs:
+        - name: php_codesniffer
+          commands:
+            - docker pull $DEVELOPMENT_IMAGE
+            - docker run --rm $DEVELOPMENT_IMAGE composer app:cs
+
+  - name: Run tests
+    dependencies: ["Build development image"]
+    task:
+      jobs:
+        - name: phpunit
+          commands:
+            - docker pull $DEVELOPMENT_IMAGE
+            - docker tag $DEVELOPMENT_IMAGE ${SEMAPHORE_PROJECT_NAME}_${SEMAPHORE_PROJECT_NAME}-php-fpm
+            - docker network create vast-service_default
+            - docker-compose up -d google-ads-views-provider-mysql
+            - docker-compose run --rm google-ads-views-provider-start-dependencies
+            - docker-compose run --rm google-ads-views-provider-php-fpm php artisan migrate --seed --env=testing
+            - docker-compose run --rm google-ads-views-provider-php-fpm phpunit
+
+  - name: Build production image
+    dependencies: ["Run code analysis", "Run tests"]
+    skip:
+      when: "branch != 'master'"
+    task:
+      jobs:
+        - name: docker build
+          commands:
+            - docker network create vast-service_default
+            - export PRODUCTION_IMAGE="gcr.io/tubebiz/$SEMAPHORE_PROJECT_NAME:$SEMAPHORE_GIT_BRANCH-$SEMAPHORE_GIT_SHA-production"
+            - docker-compose run --rm google-ads-views-provider-node yarn run production
+            - docker build --build-arg GITHUB_API_TOKEN=$GITHUB_API_TOKEN --target=prod --tag $PRODUCTION_IMAGE .
+            - docker push $PRODUCTION_IMAGE
+
+promotions:
+  - name: Deploy to production
+    pipeline_file: deploy.yml

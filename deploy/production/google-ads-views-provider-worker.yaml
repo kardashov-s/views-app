@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: google-ads-views-provider-worker
+  labels:
+      app: google-ads-views-provider-worker
+spec:
+  selector:
+    matchLabels:
+      app: google-ads-views-provider-worker
+  template:
+    metadata:
+      labels:
+        app: google-ads-views-provider-worker
+        role: google-ads-views-provider-worker
+    spec:
+      nodeSelector:
+        cloud.google.com/gke-nodepool: google-ads-views-provider-server
+      containers:
+        - name: google-ads-views-provider-worker
+          image: gcr.io/tubebiz/google-ads-views-provider
+          command: ["php", "artisan", "queue:work", "redis", "--tries=10", "--backoff=10", "--queue=default"]
+          envFrom:
+            - configMapRef:
+                name: google-ads-views-provider
+            - secretRef:
+                name: google-ads-views-provider
+          volumeMounts:
+            - name: service-account
+              mountPath: /usr/credentials
+              readOnly: true
+      volumes:
+        - name: service-account
+          secret:
+            secretName: service-account

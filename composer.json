@@ -1,0 +1,119 @@
+{
+    "name": "laravel/laravel",
+    "type": "project",
+    "description": "The Laravel Framework.",
+    "keywords": ["framework", "laravel"],
+    "license": "MIT",
+    "require": {
+        "php": "^7.4|^8.0",
+        "anlutro/l4-settings": "^1.0",
+        "clickadilla/laravel-money": "^2.1",
+        "clickadilla/laravel-social-provider": "^4.0",
+        "clickadilla/prometheus-monitoring": "^2.2",
+        "doctrine/dbal": "^2.9",
+        "fideloper/proxy": "^4.4",
+        "fruitcake/laravel-cors": "^2.0",
+        "google/cloud-error-reporting": "^0.17",
+        "guzzlehttp/guzzle": "^6.3|^7.0.1",
+        "illuminate/redis": "^8.0",
+        "laravel/framework": "^8.40",
+        "laravel/tinker": "^2.6",
+        "laravel/ui": "^3.3",
+        "predis/predis": "^1.1",
+        "slevomat/coding-standard": "^7.0",
+        "squizlabs/php_codesniffer": "^3.6"
+    },
+    "require-dev": {
+        "facade/ignition": "^2.5",
+        "fakerphp/faker": "^1.9.1",
+        "laravel/sail": "^1.0.1",
+        "laravel/telescope": "^4.6",
+        "mockery/mockery": "^1.4.2",
+        "nunomaduro/collision": "^5.0",
+        "phpunit/phpunit": "^9.3.3"
+    },
+    "repositories": [
+        {
+            "type": "git",
+            "url": "git@github.com:clickadilla/laravel-money.git"
+        },
+        {
+            "type": "git",
+            "url": "git@github.com:clickadilla/laravel-social-provider.git"
+        },
+        {
+            "type": "git",
+            "url":  "git@github.com:clickadilla/prometheus-monitoring.git"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "dont-discover": [
+                "laravel/telescope"
+            ]
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        },
+        "files": [
+            "app/helpers.php"
+        ]
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "app:check-build": [
+            "@app:cs",
+            "@app:test"
+        ],
+        "app:cs": [
+            "@app:cs-slevomat-coding-standard-rules",
+            "@app:cs-folders",
+            "@app:cs-database-folder"
+        ],
+        "app:cs-folders": [
+            "phpcs --standard=PSR12 --encoding=utf-8 -p app -p tests -p config -p routes"
+        ],
+        "app:cs-database-folder": [
+            "phpcs --standard=PSR12 --encoding=utf-8 -p database --exclude=PSR1.Classes.ClassDeclaration"
+        ],
+        "app:cs-slevomat-coding-standard-rules": [
+            "phpcs --standard=ruleset.xml --extensions=php --tab-width=4 -sp app tests config routes"
+        ],
+        "app:test": [
+            "phpunit"
+        ],
+        "app:test-fast": [
+            "phpunit --no-coverage"
+        ],
+        "app:cs-fix": [
+            "phpcbf --standard=PSR12 --encoding=utf-8 -p database --exclude=PSR1.Classes.ClassDeclaration",
+            "phpcbf --standard=PSR12 --encoding=utf-8 -p app -p tests -p config -p routes",
+            "phpcbf --standard=ruleset.xml --extensions=php --tab-width=4 -sp app tests config routes"
+        ],
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi"
+        ]
+    },
+    "config": {
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "optimize-autoloader": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

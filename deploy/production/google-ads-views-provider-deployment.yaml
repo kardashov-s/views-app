@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: google-ads-views-provider
+  labels:
+    role: google-ads-views-provider
+spec:
+  selector:
+    matchLabels:
+      role: google-ads-views-provider
+  template:
+    metadata:
+      labels:
+        role: google-ads-views-provider
+    spec:
+      nodeSelector:
+        cloud.google.com/gke-nodepool: google-ads-views-provider-server
+      containers:
+        - name: google-ads-views-provider-nginx
+          image: nginx:1.17
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: google-ads-views-provider-sockets
+              mountPath: /sockets
+            - name: google-ads-views-provider-nginx
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: google-ads-views-provider-nginx-defaultvhost
+              mountPath: /etc/nginx/sites-enabled/default.conf
+              subPath: default.conf
+        - name: google-ads-views-provider-php-fpm
+          image: gcr.io/tubebiz/google-ads-views-provider
+          command: ["/bin/bash"]
+          args: ["-c","./contrib/start-php-fpm.sh"]
+          ports:
+            - containerPort: 80
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 10
+          env:
+            - name: SOCKET
+              value: /sockets/php-fpm.sock
+          envFrom:
+            - configMapRef:
+                name: google-ads-views-provider
+            - secretRef:
+                name: google-ads-views-provider
+          volumeMounts:
+            - name: google-ads-views-provider-sockets
+              mountPath: /sockets
+            - name: google-ads-views-provider-php-fpm
+              mountPath: /usr/local/etc/php-fpm.conf
+              subPath: php-fpm.conf
+            - name: service-account
+              mountPath: /usr/credentials
+              readOnly: true
+      volumes:
+        - name: google-ads-views-provider-nginx
+          configMap:
+            name: google-ads-views-provider-nginx
+        - name: google-ads-views-provider-nginx-defaultvhost
+          configMap:
+            name: google-ads-views-provider-nginx-defaultvhost
+        - name: google-ads-views-provider-php-fpm
+          configMap:
+            name: google-ads-views-provider-php-fpm
+        - name: google-ads-views-provider-sockets
+          emptyDir: {}
+        - name: service-account
+          secret:
+            secretName: service-account

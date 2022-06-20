@@ -1,0 +1,78 @@
+version: "3"
+
+services:
+  nginx:
+    image: nginx:1.17
+    ports:
+      - "8014:80"
+    volumes:
+      - ./:/src
+      - ./contrib/local.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - php-fpm
+  php-fpm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        GITHUB_API_TOKEN: ${GITHUB_API_TOKEN}
+    depends_on:
+      - mysql
+      - redis
+    volumes:
+      - ./public:/src/public
+      - ./app:/src/app
+      - ./vendor:/src/vendor
+      - ./bootstrap/app.php:/src/bootstrap/app.php
+      - ./config:/src/config
+      - ./database:/src/database
+      - ./resources:/src/resources
+      - ./routes:/src/routes
+      - ./tests:/src/tests
+      - ./storage:/src/storage
+      - ./composer.json:/src/composer.json
+      - ./composer.lock:/src/composer.lock
+      - ./.env:/src/.env
+      - ./.env.testing:/src/.env.testing
+      - ./phpunit.xml:/src/phpunit.xml
+      - ./ruleset.xml:/src/ruleset.xml
+      - ./webpack.mix.js:/src/webpack.mix.js
+    command: [ "./contrib/start-php-fpm.sh" ]
+    networks:
+      - default
+      - vast-service_default
+  redis:
+    image: redis:5
+  mysql:
+    image: mysql:5
+    ports:
+      - "33007:3306"
+    environment:
+      MYSQL_DATABASE: homestead
+      MYSQL_USER: homestead
+      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: supersecret
+    volumes:
+      - ./contrib/init-testing-db.sql:/docker-entrypoint-initdb.d/init-testing-db.sql
+  start-dependencies:
+    image: dadarek/wait-for-dependencies
+    environment:
+      SLEEP_LENGTH: 1
+      TIMEOUT_LENGTH: 60
+    depends_on:
+      - mysql
+    command: mysql:3306
+  node:
+    build:
+      context: .
+      dockerfile: Node-dockerfile
+    volumes:
+      - ./resources:/src/resources
+      - ./public:/src/public
+      - ./package.json:/src/package.json
+      - ./yarn.lock:/src/yarn.lock
+      - ./webpack.mix.js:/src/webpack.mix.js
+networks:
+  default:
+  vast-service_default:
+    external: true

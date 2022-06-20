@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: google-ads-views-provider-nginx
+data:
+  nginx.conf: |
+    user www-data;
+    #1
+    worker_processes 1;
+    worker_rlimit_nofile 8192;
+    error_log /dev/stderr;
+    pid /var/run/nginx.pid;
+
+    events  {
+      use epoll;
+      worker_connections 1024;
+    }
+
+    http {
+      log_format fluentd '$host$request_uri [$time_local] ip: :$http_x_forwarded_for" $status referer: "$http_referer" user-agent: "$http_user_agent" body: "$request_body"';
+      include /etc/nginx/mime.types;
+      default_type text/plain;
+      gzip on;
+      gzip_http_version 1.1;
+      gzip_vary on;
+      gzip_comp_level 3;
+      gzip_proxied any;
+      gzip_types text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript application/javascript;
+      tcp_nopush on;
+      tcp_nodelay on;
+      expires off;
+      auth_basic off;
+      sendfile on;
+
+      client_header_timeout 30;
+      client_body_timeout 60;
+      client_max_body_size 256m;
+      client_body_in_single_buffer on;
+      send_timeout 30;
+      connection_pool_size 512;
+      client_header_buffer_size 1k;
+      large_client_header_buffers 4 4k;
+      request_pool_size 8k;
+      output_buffers 4 32k;
+      postpone_output 1460;
+      keepalive_timeout 75 30;
+      reset_timedout_connection on;
+      server_names_hash_bucket_size 128;
+
+      proxy_connect_timeout 300;
+      proxy_send_timeout 300;
+      proxy_read_timeout 300;
+      proxy_buffer_size 64k;
+      proxy_buffers 8 256k;
+      proxy_busy_buffers_size 256k;
+      proxy_intercept_errors on;
+      proxy_temp_path /dev/shm/nginx_proxy_temp 1 2;
+
+      map "$http_user_agent" $log_ua {
+        "GoogleHC/1.0" 0;
+        default 1;
+      }
+
+      geo $log_ip {
+        10.0.0.0/8 0;
+        default 1;
+      }
+
+      map "$log_ip:$log_ua" $loggable {
+        "0:0" 0;
+        default 1;
+      }
+
+      include /etc/nginx/sites-enabled/default.conf;
+    }

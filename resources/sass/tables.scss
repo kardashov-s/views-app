@@ -1,0 +1,47 @@
+th {
+  user-select: none;
+}
+
+th.sorting {
+  cursor: pointer;
+
+  &::after {
+    display: inline;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    margin-left: 0.25rem;
+  }
+
+  &:not(.asc):not(.desc) {
+    &::after {
+      content: "\f0dc";
+      color: inherit;
+      opacity: 0.25;
+    }
+
+    &:hover {
+      &::after {
+        opacity: .75;
+      }
+    }
+  }
+
+  &.asc, &.desc {
+    &::after {
+      color: $blue;
+      opacity: 1;
+    }
+  }
+
+  &.asc::after {
+    content: "\f0de";
+  }
+
+  &.desc::after {
+    content: "\f0dd";
+  }
+}

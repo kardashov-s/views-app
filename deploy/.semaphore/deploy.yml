@@ -1,0 +1,25 @@
+version: v1.0
+name: Deploy to production
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+blocks:
+  - name: Deploy
+    skip:
+      when: "branch != 'master'"
+    task:
+      secrets:
+        - name: tubebiz-gcloud-service-account
+      jobs:
+        - name: kubectl
+          commands:
+            - export CLUSTER=production-socpanels-usep
+            - export IMAGE_TAG="$SEMAPHORE_GIT_BRANCH-$SEMAPHORE_GIT_SHA-production"
+            - gcloud config set project $PROJECT_ID
+            - gcloud config set compute/zone europe-west4-c
+            - gcloud auth activate-service-account --key-file tubebiz-gcloud-service-account.json --project $PROJECT_ID
+            - gcloud container clusters get-credentials $CLUSTER
+            - checkout
+            - 'sed -r "s|(image: gcr.io/).*|\1$PROJECT_ID/$SEMAPHORE_PROJECT_NAME:$IMAGE_TAG|" -i deploy/production/*.yaml'
+            - kubectl apply -f deploy/production/
